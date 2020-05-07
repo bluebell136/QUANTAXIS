@@ -6,8 +6,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV PATH=${GOPATH}/bin:/usr/lib/go-1.11/bin:/usr/local/cmake/bin:${PATH}
 ENV LD_LIBRARY_PATH=:${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:${ARESDB_PATH}/lib
 ENV GO111MODULE=on
-RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 3B4FE6ACC0B21F32 40976EAF437D05B5\
-&& apt-get update --fix-missing \
+RUN apt-get update --fix-missing \
 && apt-get install -y --reinstall software-properties-common \
 && add-apt-repository ppa:gophers/archive\
 && apt-get update \

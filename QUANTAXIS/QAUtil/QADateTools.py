@@ -5,32 +5,9 @@ from QUANTAXIS.QAUtil.QASetting import (DATABASE)
 import pymongo
 import pandas as pd
 def QA_util_getBetweenMonth(from_date, to_date):
-
     """
-    explanation:
-        返回所有月份，以及每月的起始日期、结束日期，字典格式		
-
-    params:
-        * from_date ->:
-            meaning: 起始日期
-            type: null
-            optional: [null]
-        * to_date ->:
-            meaning: 结束日期
-            type: null
-            optional: [null]
-
-    return:
-        dict
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
+    #返回所有月份，以及每月的起始日期、结束日期，字典格式
     """
-
-
     date_list = {}
     begin_date = datetime.datetime.strptime(from_date, "%Y-%m-%d")
     end_date = datetime.datetime.strptime(to_date, "%Y-%m-%d")
@@ -45,31 +22,7 @@ def QA_util_getBetweenMonth(from_date, to_date):
 
 def QA_util_add_months(dt, months):
     """
-    explanation:
-        返回dt隔months个月后的日期，months相当于步长
-
-    params:
-        * dt ->:
-            meaning:日期
-            type: null
-            optional: [null]
-        * months ->:
-            meaning:步长
-            type: null
-            optional: [null]
-
-    return:
-        datetime
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
-    """
-
-    """
-  
+    #返回dt隔months个月后的日期，months相当于步长
     """
     dt = datetime.datetime.strptime(
         dt, "%Y-%m-%d") + relativedelta(months=months)
@@ -78,25 +31,9 @@ def QA_util_add_months(dt, months):
 
 def QA_util_get_1st_of_next_month(dt):
     """
-    explanation:
-         获取下个月第一天的日期
-
-    params:
-        * dt ->:
-            meaning:当天日期
-            type: datetime
-            optional: [null]
-
-    return:
-        datetime
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
+    获取下个月第一天的日期
+    :return: 返回日期
     """
-
     year = dt.year
     month = dt.month
     if month == 12:
@@ -110,27 +47,7 @@ def QA_util_get_1st_of_next_month(dt):
 
 def QA_util_getBetweenQuarter(begin_date, end_date):
     """
-    explanation:
-        加上每季度的起始日期、结束日期	
-
-    params:
-        * begin_date ->:
-            meaning: 起始日期
-            type: null
-            optional: [null]
-        * end_date ->:
-            meaning: 结束日期
-            type: null
-            optional: [null]
-
-    return:
-        dict
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
+    #加上每季度的起始日期、结束日期
     """
     quarter_list = {}
     month_list = QA_util_getBetweenMonth(begin_date, end_date)
@@ -150,25 +67,17 @@ def QA_util_getBetweenQuarter(begin_date, end_date):
 
 def QA_util_firstDayTrading(codelist: list):
     """
-    explanation:
-        获取交易品种的第一个上市日期，或第一个交易日。支持混合股票,index,etf		
+    取得交易品种的第一个上市日期，或第一个交易日。支持混合股票,index,etf
 
-    params:
-        * codelist ->:
-            meaning: stcok/index/etf 代码列表
-            type: list
-            optional: [null]
+    Args:
+        codelist (list): The list of stcok/index/etf codes
 
-    return:
+    Return:
         pandas.DataFrame: the code with its first trading date
-	
-    demonstrate:
-        QA_util_firstDayTrading(['600066','510050','000300'])
-	
-    output:
-        Not described
-    """
 
+    Example:
+        QA_util_firstDayTrading(['600066','510050','000300'])
+    """
     coll_stock_day = DATABASE.stock_day
     coll_index_day = DATABASE.index_day
     coll_stock_day.create_index(

@@ -6,6 +6,9 @@ services:
         depends_on:
             - mgdb
             - qaeventmq
+        networks:
+            qanetwork:
+                ipv4_address: 172.19.0.3
         ports:
             - "8888:8888"
             - "81:80"
@@ -21,9 +24,6 @@ services:
         volumes:
             - qacode:/home
         restart: always
-        networks:
-            qanetwork:
-                ipv4_address: 172.19.0.3
 
     # qacron:
     #     image: barretthugh/qa-cron
@@ -34,6 +34,9 @@ services:
     qaweb_run:
         image: daocloud.io/quantaxis/qarun:latest
         container_name: qarun
+        networks:
+            qanetwork:
+                ipv4_address: 172.19.0.4
         depends_on:
             - mgdb
             - qaeventmq
@@ -52,9 +55,6 @@ services:
           - qaeventmq
           - mgdb
         command: ['/root/wait_for_it.sh', 'qaeventmq:15672', '--' , "/root/runcelery.sh"]
-        networks:
-            qanetwork:
-                ipv4_address: 172.19.0.4
 
     mgdb:
         image: daocloud.io/quantaxis/qamongo_single:latest
@@ -129,18 +129,6 @@ services:
         command:
             ['/root/QUANTAXIS_RealtimeCollector/docker/wait_for_it.sh', 'qaeventmq:5672', '--' ,'/root/QUANTAXIS_RealtimeCollector/docker/start_collector.sh']
 
-            
-    # qamarketcollector:
-    #     image: daocloud.io/quantaxis/qamarket-rs:latest
-    #     depends_on:
-    #         - mgdb
-    #         - qaeventmq
-    #     environment:
-    #         - MONGODB=mgdb
-    #         - EventMQ_IP=qaeventmq
-    #     networks:
-    #         qanetwork:
-    #             ipv4_address: 172.19.0.8
 
     qatrader:
         image: daocloud.io/quantaxis/qatrader:latest
@@ -166,7 +154,7 @@ services:
 
 
     editer:
-        image: daocloud.io/quantaxis/qaeditor:latest
+        image: yutiansut/qaeditor:latest
         container_name: qaeditor
         networks: 
             qanetwork:

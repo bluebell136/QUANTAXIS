@@ -26,25 +26,11 @@ import random
 
 
 def QA_util_random_with_zh_stock_code(stockNumber=10):
-    """
-    explanation:
-        随机生成股票代码	
-
-    params:
-        * stockNumber ->:
-            meaning: 生成个数
-            type: int
-            optional: [10]
-
-    return:
-        List
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
-    """
+    '''
+    随机生成股票代码
+    :param stockNumber: 生成个数
+    :return:  ['60XXXX', '00XXXX', '300XXX']
+    '''
     codeList = []
     pt = 0
     for i in range(stockNumber):
@@ -79,29 +65,11 @@ def QA_util_random_with_zh_stock_code(stockNumber=10):
 
 def QA_util_random_with_topic(topic='Acc', lens=8):
     """
-    explanation:
-        生成account随机值	
+    生成account随机值
 
-    params:
-        * stockNutopicmber ->:
-            meaning: 开头
-            type: str
-            optional: ['Acc']
-        * lens ->:
-            meaning: 长度
-            type: int
-            optional: [10]
-            
-    return:
-        str
-	
-    demonstrate:
-        Not described
-	
-    output:
-        Not described
+    Acc+4数字id+4位大小写随机
+
     """
-
     _list = [chr(i) for i in range(65,
                                    91)] + [chr(i) for i in range(97,
                                                                  123)

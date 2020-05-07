@@ -200,24 +200,17 @@ class QAAnalysis_stock():
 
 
 def shadow_calc(data):
-    """
-    explanation:
-        计算上下影线		
+    """计算上下影线
 
-    params:
-        * data ->:
-            meaning: 行情切片
-            type: DataStruct.slice
-            optional: [null]
+    Arguments:
+        data {DataStruct.slice} -- 输入的是一个行情切片
 
-    return:
-        (up_shadow: 上影线, down_shdow: 下影线, entity: 实体部分, date:时间, code: 代码)
-
-    demonstrate:
-        Not described
-
-    output:
-        Not described
+    Returns:
+        up_shadow {float} -- 上影线
+        down_shdow {float} -- 下影线
+        entity {float} -- 实体部分
+        date {str} -- 时间
+        code {str} -- 代码
     """
 
     up_shadow = abs(data.high - (max(data.open, data.close)))
@@ -237,4 +230,4 @@ class shadow():
         self.data = data
 
     def shadow_panel(self):
-        return
+        return 
