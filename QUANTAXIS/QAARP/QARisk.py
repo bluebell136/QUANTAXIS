@@ -43,7 +43,8 @@ from pymongo import ASCENDING, DESCENDING
 from QUANTAXIS.QAARP.market_preset import MARKET_PRESET
 from QUANTAXIS.QAFetch.QAQuery_Advance import (QA_fetch_future_day_adv,
                                                QA_fetch_index_day_adv,
-                                               QA_fetch_stock_day_adv)
+                                               QA_fetch_stock_day_adv,
+                                               QA_fetch_cryptocurrency_day_adv)
 from QUANTAXIS.QASU.save_account import save_riskanalysis
 from QUANTAXIS.QAUtil.QADate_trade import (QA_util_get_trade_gap,
                                            QA_util_get_trade_range)
@@ -156,7 +157,8 @@ class QA_Risk():
         else:
             self.fetch = {
                 MARKET_TYPE.STOCK_CN: QA_fetch_stock_day_adv,
-                MARKET_TYPE.INDEX_CN: QA_fetch_index_day_adv
+                MARKET_TYPE.INDEX_CN: QA_fetch_index_day_adv,
+                MARKET_TYPE.CRYPTOCURRENCY: QA_fetch_cryptocurrency_day_adv
             }
             if market_data == None:
                 if self.account.market_type == MARKET_TYPE.STOCK_CN:
@@ -171,10 +173,16 @@ class QA_Risk():
                         self.account.start_date,
                         self.account.end_date
                     )
+                elif self.account.market_type == MARKET_TYPE.CRYPTOCURRENCY:
+                    self.market_data = QA_fetch_cryptocurrency_day_adv(
+                        [item for item in self.account.code],
+                        self.account.start_date,
+                        self.account.end_date
+                    )
             else:
                 self.market_data = market_data.select_time(self.account.start_date, self.account.end_date)
             self.if_fq = if_fq
-            if self.account.market_type == MARKET_TYPE.FUTURE_CN:
+            if (self.account.market_type == MARKET_TYPE.FUTURE_CN) or (self.account.market_type == MARKET_TYPE.CRYPTOCURRENCY):
                 self.if_fq = False  # 如果是期货， 默认设为FALSE
 
             if self.market_value is not None:
@@ -382,6 +390,7 @@ class QA_Risk():
             'beta': self.beta,
             'alpha': self.alpha,
             'sharpe': self.sharpe,
+            'sortino': self.sortino,
             'init_cash': "%0.2f" % (float(self.assets[0])),
             'last_assets': "%0.2f" % (float(self.assets.iloc[-1])),
             'total_tax': self.total_tax,
@@ -509,7 +518,14 @@ class QA_Risk():
         索提诺比率 投资组合收益和下行风险比值
 
         """
-        pass
+        return round(
+            float(
+                self.calc_sortino(self.annualize_return,
+                                 self.volatility,
+                                 0.05)
+            ),
+            2
+        )
 
     @property
     def calmar(self):
@@ -577,6 +593,30 @@ class QA_Risk():
         if volatility_year == 0:
             return 0
         return (annualized_returns - r) / volatility_year
+
+    def calc_sortino(self, negative_returns, volatility_year, rfr=0.00):
+        """
+        计算索提诺比率
+        在网上找到代码，感觉计算的结果不太对，数值偏小 -阿财 2020/03/28
+        """
+        # Define risk free rate and target return of 0
+        rfr = 0
+        target_return = 0
+
+        # Calcualte the daily returns from price data
+        daily_returns = self.assets.pct_change()
+
+        # Select the negative returns only 
+        negative_returns = daily_returns.loc[daily_returns < target_return]
+
+        # Calculate expected return and std dev of downside returns
+        expected_return = daily_returns.mean()
+        down_stdev = negative_returns.std()
+        
+        # Calculate the sortino ratio
+        sortino_ratio = (expected_return - rfr)/down_stdev
+        # 这里不知道计算年化率如何
+        return sortino_ratio
 
     @property
     def max_holdmarketvalue(self):
@@ -722,7 +762,10 @@ class QA_Risk():
             i += length / 2.8
         plt.subplot(212)
         self.assets.plot()
-        self.benchmark_assets.xs(self.benchmark_code, level=1).plot()
+        if (self.benchmark_type == MARKET_TYPE.CRYPTOCURRENCY):
+            self.benchmark_assets.xs(self.benchmark_code, level=1).plot()
+        else:
+            self.benchmark_assets.xs(self.benchmark_code, level=1).plot()
 
         asset_p = mpatches.Patch(
             color='red',

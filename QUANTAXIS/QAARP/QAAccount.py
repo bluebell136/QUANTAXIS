@@ -38,8 +38,10 @@ from QUANTAXIS.QAMarket.QAPosition import QA_Position, QA_PMS
 from QUANTAXIS.QASU.save_account import save_account, update_account
 from QUANTAXIS.QAUtil.QASetting import DATABASE
 from QUANTAXIS.QAUtil.QADate_trade import (
+    QA_util_if_trade,
     QA_util_get_next_day,
-    QA_util_get_trade_range
+    QA_util_get_trade_range,
+    QA_util_future_to_tradedatetime
 )
 from QUANTAXIS.QAUtil.QAParameter import (
     ACCOUNT_EVENT,
@@ -606,17 +608,30 @@ class QA_Account(QA_Worker):
         else:
             return self.end_
 
+    def set_end_date(self, date):
+        if QA_util_if_trade(date):
+            self.end_ = date
+        else:
+            print('error {} not a trade date'.format(date))
+
     @property
     def market_data(self):
         return self._market_data
 
     @property
     def trade_range(self):
-        return QA_util_get_trade_range(self.start_date, self.end_date)
+        if (self.market_type == MARKET_TYPE.CRYPTOCURRENCY):
+            # 数字币交易不停
+            return pd.date_range(self.start_date, self.end_date, freq='1D')
+        else:
+            return QA_util_get_trade_range(self.start_date, self.end_date)
 
     @property
     def trade_range_max(self):
-        if self.start_date < str(min(self.time_index_max))[0:10]:
+        if (self.market_type == MARKET_TYPE.CRYPTOCURRENCY):
+            # 数字币交易不停
+            return pd.date_range(self.start_date, self.end_date, freq='1D')
+        elif self.start_date < str(min(self.time_index_max))[0:10]:
             return QA_util_get_trade_range(self.start_date, self.end_date)
         else:
 
@@ -662,10 +677,13 @@ class QA_Account(QA_Worker):
     @property
     def history_min(self):
         if len(self.history):
-            res_ = pd.DataFrame(self.history)
-            res_['date'] = [i[0:10] for i in res_[0]]
-            res_ = res_[res_['date'].isin(self.trade_range)]
-            return np.array(res_.drop(['date'], axis=1)).tolist()
+            res_ = self.history_table
+            if self.market_type == MARKET_TYPE.FUTURE_CN:
+                res_  = res_.assign(tradedate = res_.datetime.apply(lambda x: str(QA_util_future_to_tradedatetime(x))[0:10]))
+            else:
+                res_  = res_.assign(tradedate = res_.datetime.apply(lambda x: str(x)[0:10]))
+            res_ = res_[res_['tradedate'].isin(self.trade_range)]
+            return np.array(res_.drop(['tradedate'], axis=1)).tolist()
         else:
             return self.history
 
@@ -1101,6 +1119,28 @@ class QA_Account(QA_Worker):
                     abs(value)
 
             tax_fee = 0 # 买入不收印花税
+        elif self.market_type == MARKET_TYPE.CRYPTOCURRENCY:
+            # 数字币不收税
+            # 双边手续费 也没有最小手续费限制
+
+            # 数字币的 CODE 包含{1}.{2}, 1 为交易所，2 为交易对CODE 
+            commission_fee_preset = self.market_preset.get_code(code)
+            if trade_towards in [ORDER_DIRECTION.BUY,
+                                 ORDER_DIRECTION.BUY_OPEN,
+                                 ORDER_DIRECTION.BUY_CLOSE,
+                                 ORDER_DIRECTION.SELL,
+                                 ORDER_DIRECTION.SELL_CLOSE,
+                                 ORDER_DIRECTION.SELL_OPEN]:
+                commission_fee = commission_fee_preset['commission_coeff_pervol'] * trade_amount + \
+                    commission_fee_preset['commission_coeff_peramount'] * \
+                    abs(value)
+            elif trade_towards in [ORDER_DIRECTION.BUY_CLOSETODAY,
+                                   ORDER_DIRECTION.SELL_CLOSETODAY]:
+                commission_fee = commission_fee_preset['commission_coeff_today_pervol'] * trade_amount + \
+                    commission_fee_preset['commission_coeff_today_peramount'] * \
+                    abs(value)
+
+            tax_fee = 0 # 买入不收印花税
         elif self.market_type == MARKET_TYPE.STOCK_CN:
 
             commission_fee = self.commission_coeff * \
@@ -1271,7 +1311,7 @@ class QA_Account(QA_Worker):
                 self.cash.append(
                     self.cash[-1] - trade_money - tax_fee - commission_fee
                 )
-            if trade_towards in [ORDER_DIRECTION.BUY, ORDER_DIRECTION.BUY_OPEN, ORDER_DIRECTION.SELL_OPEN]:
+            if trade_towards in [ ORDER_DIRECTION.BUY_OPEN, ORDER_DIRECTION.SELL_OPEN]:
                 """平仓部分的sell_available已经被提前扣减了 在sendorder中
                 """
 
@@ -1298,7 +1338,7 @@ class QA_Account(QA_Worker):
                     str(trade_time),
                     code,
                     trade_price,
-                    market_towards * trade_amount,
+                    float(market_towards * trade_amount),
                     self.cash[-1],
                     order_id,
                     realorder_id,
@@ -2117,7 +2157,7 @@ class QA_Account(QA_Worker):
         if self.market_type== MARKET_TYPE.FUTURE_CN:
             towards=ORDER_DIRECTION.BUY_OPEN
         else:
-            towards=QA.ORDER_DIRECTION.BUY
+            towards=ORDER_DIRECTION.BUY
 
 
 
@@ -2158,7 +2198,7 @@ class QA_Account(QA_Worker):
         if self.market_type== MARKET_TYPE.FUTURE_CN:
             towards=ORDER_DIRECTION.SELL_OPEN
         else:
-            towards=QA.ORDER_DIRECTION.SELL
+            towards=ORDER_DIRECTION.SELL
 
 
 
@@ -2199,7 +2239,7 @@ class QA_Account(QA_Worker):
             towards=ORDER_DIRECTION.BUY_CLOSE
         else:
             print("WARING: 当前账户是股票账户, 不应该使用此接口")
-            towards=QA.ORDER_DIRECTION.BUY
+            towards = ORDER_DIRECTION.BUY
 
 
 
@@ -2239,7 +2279,7 @@ class QA_Account(QA_Worker):
             towards=ORDER_DIRECTION.SELL_CLOSE
         else:
             print("WARING: 当前账户是股票账户, 不应该使用此接口")
-            towards=QA.ORDER_DIRECTION.SELL
+            towards=ORDER_DIRECTION.SELL
 
 
 
